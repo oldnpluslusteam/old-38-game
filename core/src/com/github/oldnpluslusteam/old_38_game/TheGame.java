@@ -7,10 +7,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.InputListener;
-import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.github.oldnpluslusteam.old_38_game.model.Collidable;
@@ -18,13 +15,12 @@ import com.github.oldnpluslusteam.old_38_game.model.CollidableAction;
 import com.github.oldnpluslusteam.old_38_game.model.Updatable;
 import com.github.oldnpluslusteam.old_38_game.model.impl.Bullet;
 import com.github.oldnpluslusteam.old_38_game.model.impl.DisposableAction;
+import com.github.oldnpluslusteam.old_38_game.model.impl.PlayerPlanet;
 import com.github.oldnpluslusteam.old_38_game.model.impl.SelftargetingBullet;
 
 import java.util.*;
 
-import static com.badlogic.gdx.graphics.GL20.GL_ONE;
-import static com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA;
-import static com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA;
+import static com.badlogic.gdx.graphics.GL20.*;
 import static com.badlogic.gdx.graphics.glutils.HdpiUtils.glViewport;
 
 public class TheGame extends ApplicationAdapter {
@@ -47,12 +43,20 @@ public class TheGame extends ApplicationAdapter {
     Collection<Collidable> collidables;
     Collection<Updatable> updatables;
 
+    PlayerPlanet playerPlanet;
+    Texture playerImg;
+
     static final int BG_PADDING = 10;
     float[] bgInfo;
     Texture bgStarImg;
 
     ParticleEffect bloodEffect;
     List<ParticleEffect> bloodEffects = new LinkedList<ParticleEffect>();
+
+    float fireTimeout0 = 0;
+    float fireTimeout1 = 0;
+    float fireTime0 = 0;
+    float fireTime1 = 0;
 
     @Override
     public void create() {
@@ -73,38 +77,10 @@ public class TheGame extends ApplicationAdapter {
             @Override
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
                 if (button == Input.Buttons.LEFT) {
-                    final Bullet bullet = new Bullet(new Vector2(screenX, screenY),
-                            new Vector2(0, 150),
-                            10);
-                    bullet.setDisposableAction(new DisposableAction() {
-                        @Override
-                        public void dispose() {
-                            bullets.remove(bullet);
-                            collidables.remove(bullet);
-                            updatables.remove(bullet);
-                        }
-                    });
-                    bullets.add(bullet);
-                    collidables.add(bullet);
-                    updatables.add(bullet);
+
                 }
                 if (button == Input.Buttons.RIGHT) {
-                    final SelftargetingBullet bullet = new SelftargetingBullet(new Vector2(screenX, screenY),
-                            new Vector2(0, 150),
-                            10,
-                            bullets.get(bullets.size() - 1)
-                    );
-                    bullet.setDisposableAction(new DisposableAction() {
-                        @Override
-                        public void dispose() {
-                            bullets.remove(bullet);
-                            collidables.remove(bullet);
-                            updatables.remove(bullet);
-                        }
-                    });
-                    bullets.add(bullet);
-                    collidables.add(bullet);
-                    updatables.add(bullet);
+
                 }
                 return true;
             }
@@ -118,6 +94,7 @@ public class TheGame extends ApplicationAdapter {
 
         camera = new OrthographicCamera(VP_WIDTH, VP_HEIGHT);
         camera.position.set(VP_WIDTH / 2, VP_HEIGHT / 2, 0);
+        screenViewport.setCamera(camera);
 
         frameBuffer_00 = new FrameBuffer(Pixmap.Format.RGBA8888,
                 (int) screenViewport.getWorldWidth(), (int) screenViewport.getWorldHeight(), false);
@@ -140,6 +117,9 @@ public class TheGame extends ApplicationAdapter {
 
         bloodEffect = new ParticleEffect();
         bloodEffect.load(Gdx.files.internal("particles/blood.p"), Gdx.files.internal("img"));
+
+        playerPlanet = new PlayerPlanet(new Vector2(VP_WIDTH / 2, 64), 128);
+        playerImg = new Texture(Gdx.files.internal("img/planet-1.png"), true);
     }
 
     void setupMainPPUniforms() {
@@ -221,7 +201,10 @@ public class TheGame extends ApplicationAdapter {
     }
 
     void drawPlanets() {
-
+        batch.draw(playerImg,
+                playerPlanet.getPosition().x - playerPlanet.getSize() / 2,
+                playerPlanet.getPosition().y - playerPlanet.getSize() / 2,
+                playerPlanet.getSize(), playerPlanet.getSize());
     }
 
     void drawAll() {
@@ -261,8 +244,8 @@ public class TheGame extends ApplicationAdapter {
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
             batch.begin();
             drawBG();
-            batch.setBlendFunction(GL_SRC_ALPHA, GL_ONE);
-            batch.draw(frameBuffer_00.getColorBufferTexture(), 0, 0);
+            batch.setBlendFunction(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+            batch.draw(frameBuffer_00.getColorBufferTexture(), 0, VP_HEIGHT, VP_WIDTH, -VP_HEIGHT);
             batch.setBlendFunction(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             drawPlanets();
             batch.end();
@@ -296,6 +279,64 @@ public class TheGame extends ApplicationAdapter {
         drawAll();
     }
 
+    void updateFire(float dt) {
+        fireTimeout0 -= dt;
+        fireTimeout1 -= dt;
+
+        if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
+            fireTime0 += dt;
+            if (fireTimeout0 <= 0) {
+                fireTimeout0 = 0.1f;
+
+                Vector2 v = screenViewport.unproject(
+                        new Vector2(Gdx.input.getX(), Gdx.input.getY()));
+                v.sub(playerPlanet.getPosition()).nor();
+                float a = v.angle();
+                a += 10f * Math.sin(fireTime0 * Math.PI * 2);
+                v.setAngle(a).scl(200);
+                final Bullet bullet = new Bullet(playerPlanet.getPosition().cpy(), v, 10);
+                bullet.setDisposableAction(new DisposableAction() {
+                    @Override
+                    public void dispose() {
+                        bullets.remove(bullet);
+                        collidables.remove(bullet);
+                        updatables.remove(bullet);
+                    }
+                });
+                bullets.add(bullet);
+                collidables.add(bullet);
+                updatables.add(bullet);
+            }
+        }
+
+        if (Gdx.input.isButtonPressed(Input.Buttons.RIGHT)) {
+            fireTime1 += dt;
+            if (fireTimeout1 <= 0) {
+                fireTimeout1 = 0.08f;
+
+                Vector2 v = screenViewport.unproject(
+                        new Vector2(Gdx.input.getX(), Gdx.input.getY()));
+                v.sub(playerPlanet.getPosition()).nor();
+                float a = v.angle();
+                a += 90f * Math.sin(fireTime0 * Math.PI * 2);
+                v.setAngle(a).scl(150);
+                final SelftargetingBullet bullet = new SelftargetingBullet(
+                        playerPlanet.getPosition().cpy(), v, 5, bullets.get(bullets.size() - 1));
+                bullet.setDisposableAction(new DisposableAction() {
+                    @Override
+                    public void dispose() {
+                        bullets.remove(bullet);
+                        collidables.remove(bullet);
+                        updatables.remove(bullet);
+                    }
+                });
+                bullets.add(bullet);
+                collidables.add(bullet);
+                updatables.add(bullet);
+            }
+        }
+    }
+
     private void update(float dt) {
         for (Updatable updatable : updatables) {
             updatable.update(dt);
@@ -311,6 +352,7 @@ public class TheGame extends ApplicationAdapter {
         for (CollidableAction action : actions) {
             action.act();
         }
+        updateFire(dt);
     }
 
     @Override

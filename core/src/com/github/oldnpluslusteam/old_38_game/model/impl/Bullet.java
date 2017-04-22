@@ -55,11 +55,11 @@ public class Bullet implements Collidable, Velocity, Updatable, Disposable {
 
 	@Override
 	public void update(float dt) {
-		updateVelocity();
+		updateVelocity(dt);
 		position.add(tmp.set(velocity).scl(dt));
 	}
 
-	public void updateVelocity() {
+	public void updateVelocity(float dt) {
 	}
 
 	@Override
