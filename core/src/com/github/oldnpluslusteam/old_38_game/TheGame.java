@@ -43,7 +43,6 @@ public class TheGame extends ApplicationAdapter {
     ShaderProgram shaderMBlurPrev;
     ShaderProgram shaderPPMain;
 
-    InputListener inputListener;
     List<Bullet> bullets;
     Collection<Collidable> collidables;
     Collection<Updatable> updatables;
@@ -151,13 +150,14 @@ public class TheGame extends ApplicationAdapter {
     void initBG() {
         int bgItems = VP_WIDTH / 2;
 
-        // [X, Y, Z(v,s)]
-        bgInfo = new float[bgItems * 3];
+        // [X, Y, Z(v,s), Blink]
+        bgInfo = new float[bgItems * 4];
 
-        for (int i = 0; i < bgInfo.length; i += 3) {
+        for (int i = 0; i < bgInfo.length; i += 4) {
             bgInfo[i + 0] = MathUtils.random(-BG_PADDING, VP_WIDTH + BG_PADDING);
             bgInfo[i + 1] = MathUtils.random(-BG_PADDING, VP_HEIGHT + BG_PADDING);
             bgInfo[i + 2] = MathUtils.random(1, 10);
+            bgInfo[i + 3] = 0;
         }
     }
 
@@ -172,11 +172,13 @@ public class TheGame extends ApplicationAdapter {
 
     void drawBG() {
         float dt = Gdx.graphics.getDeltaTime();
+        float blinkChance = 500 * dt / (float) bgInfo.length;
+        float blinkFade = (float) Math.pow(0.1f, dt);
 
         batch.setColor(Color.toFloatBits(180, 180, 180, 255));
 
-        for (int i = 0; i < bgInfo.length; i += 3) {
-            float size_2 = (bgInfo[i + 2] * 1.1f) * .8f;
+        for (int i = 0; i < bgInfo.length; i += 4) {
+            float size_2 = ((bgInfo[i + 2] + bgInfo[i + 3]) * 1.1f) * .8f;
             batch.draw(bgStarImg,
                     bgInfo[i] - size_2, bgInfo[i + 1] - size_2,
                     size_2 * 2, size_2 * 2);
@@ -189,6 +191,12 @@ public class TheGame extends ApplicationAdapter {
                 bgInfo[i + 2] = MathUtils.random(1, 10);
             } else {
                 bgInfo[i + 1] = yy;
+            }
+
+            bgInfo[i + 3] = Math.max(0, bgInfo[i + 3] * blinkFade);
+
+            if (MathUtils.randomBoolean(blinkChance)) {
+                bgInfo[i + 3] = MathUtils.random(2, 10);
             }
         }
 
