@@ -30,11 +30,13 @@ public class TheGame extends ApplicationAdapter {
     FrameBuffer frameBuffer_02;
 
     ShaderProgram shaderMBlurPrev;
+    ShaderProgram shaderPPMain;
 
     @Override
     public void create() {
         batch = new SpriteBatch();
         img = new Texture(Gdx.files.internal("img/bullet-1.png"));
+//        img = new Texture(Gdx.files.internal("badlogic.jpg"));
 
         camera = new OrthographicCamera(VP_WIDTH, VP_HEIGHT);
         camera.position.set(VP_WIDTH/2, VP_HEIGHT/2, 0);
@@ -50,6 +52,15 @@ public class TheGame extends ApplicationAdapter {
                 Gdx.files.internal("shaders/postfx_vertex_00.glsl"),
                 Gdx.files.internal("shaders/postfx_fragment_mblurPrev.glsl")
         );
+        shaderPPMain = new ShaderProgram(
+                Gdx.files.internal("shaders/postfx_vertex_00.glsl"),
+                Gdx.files.internal("shaders/postfx_fragment_mainPP.glsl")
+        );
+    }
+
+    void setupMainPPUniforms() {
+        shaderPPMain.setUniformf("u_grayscalePower",
+                (float) Gdx.input.getX(0) / (float) Gdx.graphics.getWidth());
     }
 
     void drawBG() {
@@ -57,7 +68,7 @@ public class TheGame extends ApplicationAdapter {
     }
 
     void drawCurrentBullets() {
-        batch.draw(img, 0, TimeUtils.millis() % 1000, 64, 64);
+        batch.draw(img, 0, (TimeUtils.millis() % 10000) / 10.f, 64, 64);
     }
 
     void drawPlanets() {
@@ -79,7 +90,7 @@ public class TheGame extends ApplicationAdapter {
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
             batch.begin();
             batch.setBlendFunction(GL_SRC_ALPHA, GL_ONE);
-            float bf = 0.95f;
+            float bf = 0.9f;
             batch.setColor(bf, bf, bf, 1);
             batch.setShader(shaderMBlurPrev);
             batch.draw(prevBulletBuf.getColorBufferTexture(), 0, 0);
@@ -114,8 +125,11 @@ public class TheGame extends ApplicationAdapter {
             Gdx.gl.glClearColor(0,0,0,0);
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
             batch.begin();
+            batch.setShader(shaderPPMain);
+            setupMainPPUniforms();
             batch.draw(frameBuffer_02.getColorBufferTexture(), 0, 0);
             batch.end();
+            batch.setShader(null);
         }
     }
 
