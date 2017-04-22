@@ -2,6 +2,7 @@ package com.github.oldnpluslusteam.old_38_game;
 
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
@@ -19,9 +20,7 @@ import com.github.oldnpluslusteam.old_38_game.model.impl.Bullet;
 import com.github.oldnpluslusteam.old_38_game.model.impl.DisposableAction;
 import com.github.oldnpluslusteam.old_38_game.model.impl.SelftargetingBullet;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 import static com.badlogic.gdx.graphics.GL20.GL_ONE;
 import static com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA;
@@ -53,6 +52,9 @@ public class TheGame extends ApplicationAdapter {
     float[] bgInfo;
     Texture bgStarImg;
 
+    ParticleEffect bloodEffect;
+    List<ParticleEffect> bloodEffects = new LinkedList<ParticleEffect>();
+
     @Override
     public void create() {
         bullets = new ArrayList<Bullet>();
@@ -60,6 +62,15 @@ public class TheGame extends ApplicationAdapter {
         updatables = new ArrayList<Updatable>();
 
         Gdx.input.setInputProcessor(new InputAdapter() {
+            @Override
+            public boolean keyDown(int keycode) {
+                if (keycode == Input.Keys.B) {
+                    addBlood(new Vector2(Gdx.input.getX(), Gdx.input.getY()), null);
+                }
+
+                return true;
+            }
+
             @Override
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
                 if (button == Input.Buttons.LEFT) {
@@ -127,6 +138,9 @@ public class TheGame extends ApplicationAdapter {
 //        ShaderProgram.pedantic = false;
 
         initBG();
+
+        bloodEffect = new ParticleEffect();
+        bloodEffect.load(Gdx.files.internal("particles/blood.p"), Gdx.files.internal("img"));
     }
 
     void setupMainPPUniforms() {
@@ -145,6 +159,13 @@ public class TheGame extends ApplicationAdapter {
             bgInfo[i + 1] = MathUtils.random(-BG_PADDING, VP_HEIGHT + BG_PADDING);
             bgInfo[i + 2] = MathUtils.random(1, 10);
         }
+    }
+
+    void addBlood(Vector2 pos, Vector2 dir) {
+        ParticleEffect particleEffect = new ParticleEffect(bloodEffect);
+        particleEffect.setPosition(pos.x, pos.y);
+        particleEffect.start();
+        bloodEffects.add(particleEffect);
     }
 
     void drawBG() {
@@ -176,7 +197,17 @@ public class TheGame extends ApplicationAdapter {
         for (Bullet bullet : bullets) {
             batch.draw(img, bullet.getPosition().x, bullet.getPosition().y, bullet.getSize(), bullet.getSize());
         }
-        batch.draw(img, 0, (TimeUtils.millis() % 10000) / 10.f, 64, 64);
+
+        Iterator<ParticleEffect> pei = bloodEffects.iterator();
+        float dt = Gdx.graphics.getDeltaTime();
+        while (pei.hasNext()){
+            ParticleEffect effect = pei.next();
+            if (effect.isComplete()) {
+                pei.remove();
+            } else {
+                effect.draw(batch, dt);
+            }
+        }
     }
 
     void drawPlanets() {
