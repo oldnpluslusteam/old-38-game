@@ -8,17 +8,20 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.github.oldnpluslusteam.old_38_game.model.Collidable;
+import com.github.oldnpluslusteam.old_38_game.model.CollidableAction;
 import com.github.oldnpluslusteam.old_38_game.model.Updatable;
 import com.github.oldnpluslusteam.old_38_game.model.impl.Bullet;
+import com.github.oldnpluslusteam.old_38_game.model.impl.DisposableAction;
+import com.github.oldnpluslusteam.old_38_game.model.impl.SelftargetingBullet;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import static com.badlogic.gdx.graphics.GL20.GL_ONE;
 import static com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA;
@@ -41,8 +44,9 @@ public class TheGame extends ApplicationAdapter {
     ShaderProgram shaderMBlurPrev;
     ShaderProgram shaderPPMain;
 
-    Collection<Bullet> bullets;
-    Collection<Collidable> collidables;
+    InputListener inputListener;
+	List<Bullet> bullets;
+	Collection<Collidable> collidables;
     Collection<Updatable> updatables;
 
     static final int BG_PADDING = 10;
@@ -59,9 +63,35 @@ public class TheGame extends ApplicationAdapter {
             @Override
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
                 if (button == Input.Buttons.LEFT) {
-                    Bullet bullet = new Bullet(new Vector2(screenX, screenY),
-                            new Vector2(0, 200),
+                    final Bullet bullet = new Bullet(new Vector2(screenX, screenY),
+                            new Vector2(0, 150),
                             10);
+	                bullet.setDisposableAction(new DisposableAction() {
+		                @Override
+		                public void dispose() {
+			                bullets.remove(bullet);
+			                collidables.remove(bullet);
+			                updatables.remove(bullet);
+		                }
+	                });
+                    bullets.add(bullet);
+                    collidables.add(bullet);
+                    updatables.add(bullet);
+                }
+                if (button == Input.Buttons.RIGHT){
+                    final SelftargetingBullet bullet = new SelftargetingBullet(new Vector2(screenX, screenY),
+                            new Vector2(0, 150),
+                            10,
+                            bullets.get(bullets.size() - 1)
+                    );
+                    bullet.setDisposableAction(new DisposableAction() {
+                        @Override
+                        public void dispose() {
+                            bullets.remove(bullet);
+                            collidables.remove(bullet);
+                            updatables.remove(bullet);
+                        }
+                    });
                     bullets.add(bullet);
                     collidables.add(bullet);
                     updatables.add(bullet);
@@ -168,7 +198,7 @@ public class TheGame extends ApplicationAdapter {
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
             batch.begin();
             batch.setBlendFunction(GL_ONE, GL_ONE);
-            float bf = .97f;
+            float bf = .98f;
             batch.setColor(bf, bf, bf, 1);
             batch.setShader(shaderMBlurPrev);
             batch.draw(prevBulletBuf.getColorBufferTexture(), 0, 0);
@@ -228,6 +258,17 @@ public class TheGame extends ApplicationAdapter {
     private void update(float dt) {
         for (Updatable updatable : updatables) {
             updatable.update(dt);
+        }
+        Collection<CollidableAction> actions = new ArrayList<CollidableAction>();
+        for (Collidable collidableFirst : collidables) {
+            for (Collidable collidableSecond : collidables) {
+                if (collidableFirst.isCollide(collidableSecond)){
+                    actions.add(collidableFirst.getCollidableAction());
+                }
+            }
+        }
+        for (CollidableAction action : actions) {
+            action.act();
         }
     }
 
