@@ -44,8 +44,8 @@ public class TheGame extends ApplicationAdapter {
     ShaderProgram shaderPPMain;
 
     InputListener inputListener;
-	List<Bullet> bullets;
-	Collection<Collidable> collidables;
+    List<Bullet> bullets;
+    Collection<Collidable> collidables;
     Collection<Updatable> updatables;
 
     static final int BG_PADDING = 10;
@@ -65,7 +65,7 @@ public class TheGame extends ApplicationAdapter {
             @Override
             public boolean keyDown(int keycode) {
                 if (keycode == Input.Keys.B) {
-                    addBlood(new Vector2(Gdx.input.getX(), Gdx.input.getY()), null);
+                    addBlood(new Vector2(Gdx.input.getX(), Gdx.input.getY()), new Vector2(1f, 1f));
                 }
 
                 return true;
@@ -77,19 +77,19 @@ public class TheGame extends ApplicationAdapter {
                     final Bullet bullet = new Bullet(new Vector2(screenX, screenY),
                             new Vector2(0, 150),
                             10);
-	                bullet.setDisposableAction(new DisposableAction() {
-		                @Override
-		                public void dispose() {
-			                bullets.remove(bullet);
-			                collidables.remove(bullet);
-			                updatables.remove(bullet);
-		                }
-	                });
+                    bullet.setDisposableAction(new DisposableAction() {
+                        @Override
+                        public void dispose() {
+                            bullets.remove(bullet);
+                            collidables.remove(bullet);
+                            updatables.remove(bullet);
+                        }
+                    });
                     bullets.add(bullet);
                     collidables.add(bullet);
                     updatables.add(bullet);
                 }
-                if (button == Input.Buttons.RIGHT){
+                if (button == Input.Buttons.RIGHT) {
                     final SelftargetingBullet bullet = new SelftargetingBullet(new Vector2(screenX, screenY),
                             new Vector2(0, 150),
                             10,
@@ -162,8 +162,10 @@ public class TheGame extends ApplicationAdapter {
     }
 
     void addBlood(Vector2 pos, Vector2 dir) {
+        float a = dir.angle();
         ParticleEffect particleEffect = new ParticleEffect(bloodEffect);
         particleEffect.setPosition(pos.x, pos.y);
+        particleEffect.getEmitters().get(0).getAngle().setHigh(a - 45, a + 45);
         particleEffect.start();
         bloodEffects.add(particleEffect);
     }
@@ -200,7 +202,7 @@ public class TheGame extends ApplicationAdapter {
 
         Iterator<ParticleEffect> pei = bloodEffects.iterator();
         float dt = Gdx.graphics.getDeltaTime();
-        while (pei.hasNext()){
+        while (pei.hasNext()) {
             ParticleEffect effect = pei.next();
             if (effect.isComplete()) {
                 pei.remove();
@@ -293,7 +295,7 @@ public class TheGame extends ApplicationAdapter {
         Collection<CollidableAction> actions = new ArrayList<CollidableAction>();
         for (Collidable collidableFirst : collidables) {
             for (Collidable collidableSecond : collidables) {
-                if (collidableFirst.isCollide(collidableSecond)){
+                if (collidableFirst.isCollide(collidableSecond)) {
                     actions.add(collidableFirst.getCollidableAction());
                 }
             }
