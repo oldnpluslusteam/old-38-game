@@ -28,7 +28,7 @@ void main() {
         vec4 grayscale = vec4(dot(color.rgb, vec3(.3, .3, .3)));
 
         color = mix(color, grayscale, vec4(u_grayscalePower));
-//*
+/*
         color += 0.125 * addSample(vec2(c_pxx, -c_pxy));
         color += 0.125 * addSample(vec2(-c_pxx, -c_pxy));
         color += 0.125 * addSample(vec2(-c_pxx, c_pxy));

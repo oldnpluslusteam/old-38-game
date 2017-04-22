@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -40,21 +41,24 @@ public class TheGame extends ApplicationAdapter {
     ShaderProgram shaderMBlurPrev;
     ShaderProgram shaderPPMain;
 
-    InputListener inputListener;
-	Collection<Bullet> bullets;
-	Collection<Collidable> collidables;
+    Collection<Bullet> bullets;
+    Collection<Collidable> collidables;
     Collection<Updatable> updatables;
+
+    static final int BG_PADDING = 10;
+    float[] bgInfo;
+    Texture bgStarImg;
 
     @Override
     public void create() {
-		bullets = new ArrayList<Bullet>();
-		collidables = new ArrayList<Collidable>();
-		updatables = new ArrayList<Updatable>();
+        bullets = new ArrayList<Bullet>();
+        collidables = new ArrayList<Collidable>();
+        updatables = new ArrayList<Updatable>();
 
-		Gdx.input.setInputProcessor(new InputAdapter(){
+        Gdx.input.setInputProcessor(new InputAdapter() {
             @Override
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-                if (button == Input.Buttons.LEFT){
+                if (button == Input.Buttons.LEFT) {
                     Bullet bullet = new Bullet(new Vector2(screenX, screenY),
                             new Vector2(0, 200),
                             10);
@@ -70,8 +74,10 @@ public class TheGame extends ApplicationAdapter {
         img = new Texture(Gdx.files.internal("img/bullet-1.png"));
 //        img = new Texture(Gdx.files.internal("badlogic.jpg"));
 
+        bgStarImg = new Texture(Gdx.files.internal("img/star-1.png"));
+
         camera = new OrthographicCamera(VP_WIDTH, VP_HEIGHT);
-        camera.position.set(VP_WIDTH/2, VP_HEIGHT/2, 0);
+        camera.position.set(VP_WIDTH / 2, VP_HEIGHT / 2, 0);
 
         frameBuffer_00 = new FrameBuffer(Pixmap.Format.RGBA8888,
                 (int) screenViewport.getWorldWidth(), (int) screenViewport.getWorldHeight(), false);
@@ -88,6 +94,9 @@ public class TheGame extends ApplicationAdapter {
                 Gdx.files.internal("shaders/postfx_vertex_00.glsl"),
                 Gdx.files.internal("shaders/postfx_fragment_mainPP.glsl")
         );
+//        ShaderProgram.pedantic = false;
+
+        initBG();
     }
 
     void setupMainPPUniforms() {
@@ -95,14 +104,48 @@ public class TheGame extends ApplicationAdapter {
                 (float) Gdx.input.getX(0) / (float) Gdx.graphics.getWidth());
     }
 
+    void initBG() {
+        int bgItems = VP_WIDTH / 2;
+
+        // [X, Y, Z(v,s)]
+        bgInfo = new float[bgItems * 3];
+
+        for (int i = 0; i < bgInfo.length; i += 3) {
+            bgInfo[i + 0] = MathUtils.random(-BG_PADDING, VP_WIDTH + BG_PADDING);
+            bgInfo[i + 1] = MathUtils.random(-BG_PADDING, VP_HEIGHT + BG_PADDING);
+            bgInfo[i + 2] = MathUtils.random(1, 10);
+        }
+    }
+
     void drawBG() {
-        batch.draw(img, 0, 0);
+        float dt = Gdx.graphics.getDeltaTime();
+
+        batch.setColor(Color.toFloatBits(180, 180, 180, 255));
+
+        for (int i = 0; i < bgInfo.length; i += 3) {
+            float size_2 = (bgInfo[i + 2] * 1.1f) * .8f;
+            batch.draw(bgStarImg,
+                    bgInfo[i] - size_2, bgInfo[i + 1] - size_2,
+                    size_2 * 2, size_2 * 2);
+
+            float yy = dt * -(100.f + bgInfo[i + 2] * 20f) * .3f + bgInfo[i + 1];
+
+            if (yy < -BG_PADDING) {
+                bgInfo[i + 0] = MathUtils.random(-BG_PADDING, VP_WIDTH + BG_PADDING);
+                bgInfo[i + 1] = VP_HEIGHT + BG_PADDING;
+                bgInfo[i + 2] = MathUtils.random(1, 10);
+            } else {
+                bgInfo[i + 1] = yy;
+            }
+        }
+
+        batch.setColor(Color.WHITE);
     }
 
     void drawCurrentBullets() {
-	    for (Bullet bullet : bullets) {
-		    batch.draw(img, bullet.getPosition().x, bullet.getPosition().y, bullet.getSize(), bullet.getSize());
-	    }
+        for (Bullet bullet : bullets) {
+            batch.draw(img, bullet.getPosition().x, bullet.getPosition().y, bullet.getSize(), bullet.getSize());
+        }
         batch.draw(img, 0, (TimeUtils.millis() % 10000) / 10.f, 64, 64);
     }
 
@@ -121,7 +164,7 @@ public class TheGame extends ApplicationAdapter {
 
             curBulletBuf.begin();
             glViewport(0, 0, curBulletBuf.getWidth(), curBulletBuf.getHeight());
-            Gdx.gl.glClearColor(0,0,0,0);
+            Gdx.gl.glClearColor(0, 0, 0, 0);
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
             batch.begin();
             batch.setBlendFunction(GL_ONE, GL_ONE);
@@ -143,7 +186,7 @@ public class TheGame extends ApplicationAdapter {
         {
             frameBuffer_02.begin();
             glViewport(0, 0, frameBuffer_02.getWidth(), frameBuffer_02.getHeight());
-            Gdx.gl.glClearColor(0,0,0,0);
+            Gdx.gl.glClearColor(0, 0, 0, 0);
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
             batch.begin();
             drawBG();
@@ -157,7 +200,7 @@ public class TheGame extends ApplicationAdapter {
 
         {
             screenViewport.apply(false);
-            Gdx.gl.glClearColor(0,0,0,0);
+            Gdx.gl.glClearColor(0, 0, 0, 0);
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
             batch.begin();
             batch.setShader(shaderPPMain);
@@ -175,7 +218,7 @@ public class TheGame extends ApplicationAdapter {
 
     @Override
     public void render() {
-        Gdx.gl.glClearColor(0,0,0,0);
+        Gdx.gl.glClearColor(0, 0, 0, 0);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         update(Gdx.graphics.getDeltaTime());
