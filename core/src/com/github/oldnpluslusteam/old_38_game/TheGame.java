@@ -55,7 +55,7 @@ public class TheGame extends ApplicationAdapter {
             @Override
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
                 if (button == Input.Buttons.LEFT){
-                    Bullet bullet = new Bullet(new Vector2(screenX, Gdx.graphics.getHeight()-screenY),
+                    Bullet bullet = new Bullet(new Vector2(screenX, screenY),
                             new Vector2(0, 200),
                             10);
                     bullets.add(bullet);
@@ -124,8 +124,8 @@ public class TheGame extends ApplicationAdapter {
             Gdx.gl.glClearColor(0,0,0,0);
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
             batch.begin();
-            batch.setBlendFunction(GL_SRC_ALPHA, GL_ONE);
-            float bf = 0.9f;
+            batch.setBlendFunction(GL_ONE, GL_ONE);
+            float bf = .97f;
             batch.setColor(bf, bf, bf, 1);
             batch.setShader(shaderMBlurPrev);
             batch.draw(prevBulletBuf.getColorBufferTexture(), 0, 0);
@@ -143,7 +143,7 @@ public class TheGame extends ApplicationAdapter {
         {
             frameBuffer_02.begin();
             glViewport(0, 0, frameBuffer_02.getWidth(), frameBuffer_02.getHeight());
-            Gdx.gl.glClearColor(0,0,.2f,0);
+            Gdx.gl.glClearColor(0,0,0,0);
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
             batch.begin();
             drawBG();
