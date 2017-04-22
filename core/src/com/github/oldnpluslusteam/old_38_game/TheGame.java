@@ -1,15 +1,23 @@
 package com.github.oldnpluslusteam.old_38_game;
 
-import com.badlogic.gdx.ApplicationAdapter;
-import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.github.oldnpluslusteam.old_38_game.model.Collidable;
+import com.github.oldnpluslusteam.old_38_game.model.Updatable;
+import com.github.oldnpluslusteam.old_38_game.model.impl.Bullet;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 import static com.badlogic.gdx.graphics.GL20.GL_ONE;
 import static com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA;
@@ -32,8 +40,32 @@ public class TheGame extends ApplicationAdapter {
     ShaderProgram shaderMBlurPrev;
     ShaderProgram shaderPPMain;
 
+    InputListener inputListener;
+	Collection<Bullet> bullets;
+	Collection<Collidable> collidables;
+    Collection<Updatable> updatables;
+
     @Override
     public void create() {
+		bullets = new ArrayList<Bullet>();
+		collidables = new ArrayList<Collidable>();
+		updatables = new ArrayList<Updatable>();
+
+		Gdx.input.setInputProcessor(new InputAdapter(){
+            @Override
+            public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+                if (button == Input.Buttons.LEFT){
+                    Bullet bullet = new Bullet(new Vector2(screenX, Gdx.graphics.getHeight()-screenY),
+                            new Vector2(0, 200),
+                            10);
+                    bullets.add(bullet);
+                    collidables.add(bullet);
+                    updatables.add(bullet);
+                }
+                return true;
+            }
+        });
+
         batch = new SpriteBatch();
         img = new Texture(Gdx.files.internal("img/bullet-1.png"));
 //        img = new Texture(Gdx.files.internal("badlogic.jpg"));
@@ -68,6 +100,9 @@ public class TheGame extends ApplicationAdapter {
     }
 
     void drawCurrentBullets() {
+	    for (Bullet bullet : bullets) {
+		    batch.draw(img, bullet.getPosition().x, bullet.getPosition().y, bullet.getSize(), bullet.getSize());
+	    }
         batch.draw(img, 0, (TimeUtils.millis() % 10000) / 10.f, 64, 64);
     }
 
@@ -143,7 +178,14 @@ public class TheGame extends ApplicationAdapter {
         Gdx.gl.glClearColor(0,0,0,0);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        update(Gdx.graphics.getDeltaTime());
         drawAll();
+    }
+
+    private void update(float dt) {
+        for (Updatable updatable : updatables) {
+            updatable.update(dt);
+        }
     }
 
     @Override
