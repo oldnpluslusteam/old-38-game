@@ -132,13 +132,36 @@ public class TheGame extends ApplicationAdapter {
         enemyTextures.add(new Texture(Gdx.files.internal("img/planet-2.png")));
         enemyTextures.add(new Texture(Gdx.files.internal("img/planet-3.png")));
         enemyTextures.add(new Texture(Gdx.files.internal("img/planet-4.png")));
+        enemyTextures.add(new Texture(Gdx.files.internal("img/planet-5.png")));
 
         spawnEnemy();
     }
 
     void setupMainPPUniforms() {
-        shaderPPMain.setUniformf("u_grayscalePower",
-                (float) Gdx.input.getX(0) / (float) Gdx.graphics.getWidth());
+        float value = (float) Gdx.input.getX(0) / (float) Gdx.graphics.getWidth();
+        float min = 0;
+        EnemyPlanet ep = null;
+        for (EnemyPlanet enemyPlanet : enemyPlanets) {
+            float distance = enemyPlanet.getPosition().dst(playerPlanet.getPosition());
+            if (min == 0 || distance < min) {
+                min = distance;
+                ep = enemyPlanet;
+            }
+        }
+        float x = 1;
+        if (ep != null) {
+            float near = (playerPlanet.getSize() + ep.getSize()) / 2 + 20;
+            float far = VP_HEIGHT - playerPlanet.getSize() - ep.getSize();
+
+            if (min < near) {
+                x = 0;
+            } else if (min > far) {
+                x = 1;
+            } else {
+                x = (min - near) / (far - near);
+            }
+        }
+        shaderPPMain.setUniformf("u_grayscalePower", x);
     }
 
     void initBG() {
