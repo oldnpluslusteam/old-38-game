@@ -24,6 +24,8 @@ import static com.badlogic.gdx.graphics.glutils.HdpiUtils.glViewport;
 
 public class TheGame extends ApplicationAdapter {
     static final int VP_WIDTH = 1366, VP_HEIGHT = 768;
+    static final int MAX_ENEMIES = 10;
+    static final float ENEMY_SPAWN_INTERVAL = 1f;
 
     SpriteBatch batch;
     Texture img;
@@ -59,6 +61,8 @@ public class TheGame extends ApplicationAdapter {
     float fireTimeout1 = 0;
     float fireTime0 = 0;
     float fireTime1 = 0;
+
+    float spawnTimeout = 0;
 
     @Override
     public void create() {
@@ -165,7 +169,7 @@ public class TheGame extends ApplicationAdapter {
     void spawnEnemy() {
         final float size = MathUtils.random(64, 128);
         float posX = MathUtils.random(BG_PADDING + size / 2, VP_WIDTH - BG_PADDING + size / 2);
-        float posY = VP_HEIGHT - size;
+        float posY = VP_HEIGHT + size;
 
         Texture texture = enemyTextures.get(MathUtils.random(enemyTextures.size() - 1));
 
@@ -223,6 +227,16 @@ public class TheGame extends ApplicationAdapter {
         updatables.add(planet);
         collidables.add(planet);
         enemyPlanets.add(planet);
+    }
+
+    void spawnEnemyIfNecessary(float dt) {
+        spawnTimeout -= dt;
+
+        if (spawnTimeout <= 0 && enemyPlanets.size() < MAX_ENEMIES) {
+            spawnTimeout = ENEMY_SPAWN_INTERVAL;
+
+            spawnEnemy();
+        }
     }
 
     void drawBG() {
@@ -474,6 +488,7 @@ public class TheGame extends ApplicationAdapter {
         }
         actions.clear();
         updateFire(dt);
+        spawnEnemyIfNecessary(dt);
     }
 
     @Override

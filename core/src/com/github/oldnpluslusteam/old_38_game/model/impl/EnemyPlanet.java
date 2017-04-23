@@ -1,6 +1,7 @@
 package com.github.oldnpluslusteam.old_38_game.model.impl;
 
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Disposable;
 import com.github.oldnpluslusteam.old_38_game.model.*;
@@ -14,7 +15,7 @@ public class EnemyPlanet implements Collidable, Positionable, ISize, Velocity, U
     private final Texture texture;
     private final DisposableAction disposableAction;
     private Positionable target;
-    public final static int PLANET_SPEED = 10;
+    private final float velocityMod = MathUtils.random(40, 120);
 
     public EnemyPlanet(float size, CollidableAction collidableAction, Vector2 velocity, Vector2 position, Texture texture, DisposableAction disposableAction, PlayerPlanet target) {
         this.size = size;
@@ -61,7 +62,7 @@ public class EnemyPlanet implements Collidable, Positionable, ISize, Velocity, U
         Vector2 direction = target.getPosition().cpy()
                 .sub(getPosition())
                 .nor()
-                .scl(PLANET_SPEED);
+                .scl(velocityMod);
         velocity.set(direction);
         // apply velocity
         position.add(tmp.set(velocity).scl(dt));
