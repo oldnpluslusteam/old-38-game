@@ -209,11 +209,13 @@ public class TheGame extends ApplicationAdapter {
                 new DisposableAction() {
                     @Override
                     public void dispose() {
+                        planetA[0].getPosition().y = 3000;
                         updatables.remove(planetA[0]);
                         collidables.remove(planetA[0]);
                         enemyPlanets.remove(planetA[0]);
                     }
-                }
+                },
+		        playerPlanet
         );
 
         planetA[0] = planet;

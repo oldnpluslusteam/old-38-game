@@ -10,15 +10,20 @@ public class EnemyPlanet implements Collidable, Positionable, ISize, Velocity, U
     private final CollidableAction collidableAction;
     private final Vector2 velocity;
     private final Vector2 position;
+    private final Vector2 tmp;
     private final Texture texture;
     private final DisposableAction disposableAction;
+    private Positionable target;
+    public final static int PLANET_SPEED = 10;
 
-    public EnemyPlanet(float size, CollidableAction collidableAction, Vector2 velocity, Vector2 position, Texture texture, DisposableAction disposableAction) {
+    public EnemyPlanet(float size, CollidableAction collidableAction, Vector2 velocity, Vector2 position, Texture texture, DisposableAction disposableAction, PlayerPlanet target) {
         this.size = size;
         this.collidableAction = collidableAction;
         this.velocity = velocity;
         this.position = position;
         this.texture = texture;
+        this.target = target;
+        tmp = new Vector2();
         this.disposableAction = disposableAction;
     }
 
@@ -52,6 +57,14 @@ public class EnemyPlanet implements Collidable, Positionable, ISize, Velocity, U
 
     @Override
     public boolean update(float dt) {
+        // update velocity
+        Vector2 direction = target.getPosition().cpy()
+                .sub(getPosition())
+                .nor()
+                .scl(PLANET_SPEED);
+        velocity.set(direction);
+        // apply velocity
+        position.add(tmp.set(velocity).scl(dt));
         return true;
     }
 
