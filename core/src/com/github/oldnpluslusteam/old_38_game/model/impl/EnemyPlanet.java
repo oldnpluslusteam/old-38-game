@@ -48,8 +48,8 @@ public class EnemyPlanet implements Collidable, Positionable, ISize, Velocity, U
     }
 
     @Override
-    public void update(float dt) {
-
+    public boolean update(float dt) {
+        return true;
     }
 
     public Texture getTexture() {

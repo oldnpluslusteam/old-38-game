@@ -1,5 +1,6 @@
 package com.github.oldnpluslusteam.old_38_game.model.impl;
 
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Disposable;
 import com.github.oldnpluslusteam.old_38_game.model.Collidable;
@@ -14,6 +15,7 @@ public class Bullet implements Collidable, Velocity, Updatable, Disposable {
 	private float size;
 	private DisposableAction disposableAction;
 	private CollidableAction collidableAction;
+    private float lifetime = MathUtils.random(10f, 30f);
 
 	public Bullet(Vector2 position, Vector2 velocity, float size) {
 		this.position = position;
@@ -21,7 +23,7 @@ public class Bullet implements Collidable, Velocity, Updatable, Disposable {
 		this.size = size;
 		collidableAction = new CollidableAction() {
 			@Override
-			public void act() {
+			public void act(Collidable other) {
 				dispose();
 			}
 		};
@@ -32,7 +34,7 @@ public class Bullet implements Collidable, Velocity, Updatable, Disposable {
 		if (this == collidable) return false;
 		if (collidable instanceof Bullet) return false;
 		float distance = collidable.getPosition().dst(position);
-		return distance < getSize() + collidable.getSize();
+		return distance < (getSize() + collidable.getSize()) / 2;
 	}
 
 	@Override
@@ -55,9 +57,10 @@ public class Bullet implements Collidable, Velocity, Updatable, Disposable {
 	}
 
 	@Override
-	public void update(float dt) {
+	public boolean update(float dt) {
 		updateVelocity(dt);
 		position.add(tmp.set(velocity).scl(dt));
+        return (lifetime = lifetime - dt) > 0;
 	}
 
 	public void updateVelocity(float dt) {

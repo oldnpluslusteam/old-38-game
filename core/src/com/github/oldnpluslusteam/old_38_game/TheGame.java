@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.github.oldnpluslusteam.old_38_game.model.Collidable;
@@ -16,6 +17,7 @@ import com.github.oldnpluslusteam.old_38_game.model.Positionable;
 import com.github.oldnpluslusteam.old_38_game.model.Updatable;
 import com.github.oldnpluslusteam.old_38_game.model.impl.*;
 
+import java.lang.ref.Reference;
 import java.util.*;
 
 import static com.badlogic.gdx.graphics.GL20.*;
@@ -159,24 +161,37 @@ public class TheGame extends ApplicationAdapter {
         bloodEffects.add(particleEffect);
     }
 
+    static final Vector2 tmp1 = new Vector2();
+
     void spawnEnemy() {
-        float size = MathUtils.random(64, 128);
+        final float size = MathUtils.random(64, 128);
         float posX = MathUtils.random(BG_PADDING + size / 2, VP_WIDTH - BG_PADDING + size / 2);
         float posY = VP_HEIGHT - size;
 
         Texture texture = enemyTextures.get(MathUtils.random(enemyTextures.size() - 1));
 
+        final EnemyPlanet[] planetA = new EnemyPlanet[1];
+
         EnemyPlanet planet = new EnemyPlanet(
                 size,
                 new CollidableAction() {
                     @Override
-                    public void act() {
+                    public void act(Collidable other) {
+                        tmp1.set(other.getPosition());
+                        tmp1.sub(planetA[0].getPosition());
+                        tmp1.setLength(size / 2);
 
+                        addBlood(
+                                planetA[0].getPosition(),
+                                tmp1.cpy()
+                        );
                     }
                 },
                 new Vector2(),
                 new Vector2(posX, posY),
                 texture);
+
+        planetA[0] = planet;
 
         updatables.add(planet);
         collidables.add(planet);
@@ -354,6 +369,10 @@ public class TheGame extends ApplicationAdapter {
             float ftd = dt;
             float fct = 0.04f;
 
+            if (fireTimeout1 < fct * -10) {
+                fireTimeout1 = fct;
+            }
+
             while (fireTimeout1 <= 0) {
                 fireTimeout1 += fct;
                 fireTime1 += fct;
@@ -390,21 +409,41 @@ public class TheGame extends ApplicationAdapter {
         }
     }
 
+    Collection<Runnable> actions = new ArrayList<Runnable>();
+
     private void update(float dt) {
-        for (Updatable updatable : updatables) {
-            updatable.update(dt);
+        for (final Updatable updatable : updatables) {
+            if (!updatable.update(dt)) {
+                actions.add(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (updatable instanceof Disposable) {
+                            ((Disposable) updatable).dispose();
+                        }
+                    }
+                });
+            }
         }
-        Collection<CollidableAction> actions = new ArrayList<CollidableAction>();
-        for (Collidable collidableFirst : collidables) {
-            for (Collidable collidableSecond : collidables) {
+        for (Runnable action : actions) {
+            action.run();
+        }
+        actions.clear();
+        for (final Collidable collidableFirst : collidables) {
+            for (final Collidable collidableSecond : collidables) {
                 if (collidableFirst.isCollide(collidableSecond)) {
-                    actions.add(collidableFirst.getCollidableAction());
+                    actions.add(new Runnable() {
+                        @Override
+                        public void run() {
+                            collidableFirst.getCollidableAction().act(collidableSecond);
+                        }
+                    });
                 }
             }
         }
-        for (CollidableAction action : actions) {
-            action.act();
+        for (Runnable action : actions) {
+            action.run();
         }
+        actions.clear();
         updateFire(dt);
     }
 
