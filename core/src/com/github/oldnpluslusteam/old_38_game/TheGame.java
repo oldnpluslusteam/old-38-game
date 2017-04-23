@@ -208,6 +208,7 @@ public class TheGame extends ApplicationAdapter {
                         tmp1.set(other.getPosition());
                         tmp1.sub(planetA[0].getPosition());
                         tmp1.setLength(size / 2);
+                        tmp1.scl(-1);
 
                         addBlood(
                                 planetA[0].getPosition(),

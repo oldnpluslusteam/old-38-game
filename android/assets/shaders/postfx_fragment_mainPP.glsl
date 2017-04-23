@@ -11,7 +11,7 @@ uniform float u_grayscalePower;
 
 const float c_pxx = 1.0f / 1366.0f;
 const float c_pxy = 1.0f / 768.0f;
-const float c_limit = 0.7f;
+const float c_limit = 0.98f;
 
 vec4 addSample(vec2 offset) {
     vec4 sample_ = texture2D(u_texture, vec2(v_texCoords.x, 1.0 - v_texCoords.y) + offset);
@@ -27,8 +27,8 @@ void main() {
         vec4 color = v_color * texture2D(u_texture, vec2(v_texCoords.x, 1.0 - v_texCoords.y));
         vec4 grayscale = vec4(dot(color.rgb, vec3(.3, .3, .3)));
 
-        color = mix(color, grayscale, vec4(u_grayscalePower));
-/*
+        color = mix(color, grayscale, vec4(u_grayscalePower)) * 8.0;
+//*
         color += 0.125 * addSample(vec2(c_pxx, -c_pxy));
         color += 0.125 * addSample(vec2(-c_pxx, -c_pxy));
         color += 0.125 * addSample(vec2(-c_pxx, c_pxy));
@@ -41,6 +41,7 @@ void main() {
         color += 0.0625 * addSample(2.0f * vec2(0, -c_pxy));
         color += 0.0625 * addSample(2.0f * vec2(0, c_pxy));
         color += 0.0625 * addSample(2.0f * vec2(-c_pxx, 0));
+        color *= 0.125;
 //*/
 
         gl_FragColor = color;
