@@ -352,7 +352,7 @@ public class TheGame extends ApplicationAdapter {
 
         if (Gdx.input.isButtonPressed(Input.Buttons.RIGHT)) {
             float ftd = dt;
-            float fct = 0.02f;
+            float fct = 0.04f;
 
             while (fireTimeout1 <= 0) {
                 fireTimeout1 += fct;

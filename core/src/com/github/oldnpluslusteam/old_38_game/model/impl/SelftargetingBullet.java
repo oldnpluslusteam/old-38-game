@@ -20,7 +20,22 @@ public class SelftargetingBullet extends Bullet {
 		float vMod = getVelocity().len();
 		tmp1.set(target.getPosition());
 		tmp1.sub(getPosition());
-		tmp1.nor().scl(vMod);
-		getVelocity().lerp(tmp1, k);
+		// angle current velocity
+		float acv = getVelocity().angle();
+		// angle target velocity
+		float atv = tmp1.angle();
+		// delta angle initial
+		float dai = Math.abs(acv - atv);
+		if (Math.abs((360 + acv) - atv) < dai) {
+			acv = 360 + acv;
+		} else if (Math.abs(acv - (atv + 360)) < dai) {
+			atv = 360 + atv;
+		}
+		getVelocity().setAngle(k * atv + (1f - k) * acv);
+
+//		tmp1.set(target.getPosition());
+//		tmp1.sub(getPosition());
+//		tmp1.nor().scl(vMod);
+//		getVelocity().lerp(tmp1, dt * 0.25f);
 	}
 }
