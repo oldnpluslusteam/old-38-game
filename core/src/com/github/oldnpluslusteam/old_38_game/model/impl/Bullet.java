@@ -33,6 +33,7 @@ public class Bullet implements Collidable, Velocity, Updatable, Disposable {
 	public boolean isCollide(Collidable collidable) {
 		if (this == collidable) return false;
 		if (collidable instanceof Bullet) return false;
+		if (collidable instanceof PlayerPlanet) return false;
 		float distance = collidable.getPosition().dst(position);
 		return distance < (getSize() + collidable.getSize()) / 2;
 	}

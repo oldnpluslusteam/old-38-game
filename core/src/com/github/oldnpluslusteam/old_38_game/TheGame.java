@@ -26,6 +26,7 @@ public class TheGame extends ApplicationAdapter {
     static final int VP_WIDTH = 1366, VP_HEIGHT = 768;
     static final int MAX_ENEMIES = 10;
     static final float ENEMY_SPAWN_INTERVAL = 1f;
+    static final float MAX_GAMEPLAY_TIME = 60;
 
     SpriteBatch batch;
     Texture img;
@@ -39,6 +40,7 @@ public class TheGame extends ApplicationAdapter {
 
     ShaderProgram shaderMBlurPrev;
     ShaderProgram shaderPPMain;
+    ShaderProgram shaderBGFinal;
 
     List<Bullet> bullets;
     Collection<Collidable> collidables;
@@ -63,6 +65,12 @@ public class TheGame extends ApplicationAdapter {
     float fireTime1 = 0;
 
     float spawnTimeout = 0;
+
+    Texture bgLoseTexture, bgWinTexture;
+    Texture finalTextureCur = null;
+    float finalTime;
+
+    float gameplayTime;
 
     @Override
     public void create() {
@@ -119,6 +127,10 @@ public class TheGame extends ApplicationAdapter {
                 Gdx.files.internal("shaders/postfx_vertex_00.glsl"),
                 Gdx.files.internal("shaders/postfx_fragment_mainPP.glsl")
         );
+        shaderBGFinal = new ShaderProgram(
+                Gdx.files.internal("shaders/postfx_vertex_00.glsl"),
+                Gdx.files.internal("shaders/postfx_fragment_final.glsl")
+        );
 //        ShaderProgram.pedantic = false;
 
         initBG();
@@ -126,15 +138,27 @@ public class TheGame extends ApplicationAdapter {
         bloodEffect = new ParticleEffect();
         bloodEffect.load(Gdx.files.internal("particles/blood.p"), Gdx.files.internal("img"));
 
-        playerPlanet = new PlayerPlanet(new Vector2(VP_WIDTH / 2, 64), 128);
+        playerPlanet = new PlayerPlanet(new Vector2(VP_WIDTH / 2, 64), 128,
+                new CollidableAction() {
+                    @Override
+                    public void act(Collidable other) {
+                        startFinal(bgLoseTexture);
+                    }
+                });
         playerImg = new Texture(Gdx.files.internal("img/planet-1.png"), true);
+        collidables.add(playerPlanet);
 
         enemyTextures.add(new Texture(Gdx.files.internal("img/planet-2.png")));
         enemyTextures.add(new Texture(Gdx.files.internal("img/planet-3.png")));
         enemyTextures.add(new Texture(Gdx.files.internal("img/planet-4.png")));
         enemyTextures.add(new Texture(Gdx.files.internal("img/planet-5.png")));
 
+        bgWinTexture = new Texture(Gdx.files.internal("img/bg-win.jpg"));
+        bgLoseTexture = new Texture(Gdx.files.internal("img/bg-lose.jpg"));
+
         spawnEnemy();
+
+        gameplayTime = 0;
     }
 
     void setupMainPPUniforms() {
@@ -386,6 +410,16 @@ public class TheGame extends ApplicationAdapter {
         }
     }
 
+    void drawFinal() {
+        screenViewport.apply(false);
+        finalTime += Gdx.graphics.getDeltaTime();
+        batch.begin();
+        batch.setShader(shaderBGFinal);
+        shaderBGFinal.setUniformf("u_timePassed", finalTime);
+        batch.draw(finalTextureCur, 0, 0, VP_WIDTH, VP_HEIGHT);
+        batch.end();
+    }
+
     @Override
     public void resize(int width, int height) {
         screenViewport.update(width, height);
@@ -395,6 +429,11 @@ public class TheGame extends ApplicationAdapter {
     public void render() {
         Gdx.gl.glClearColor(0, 0, 0, 0);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        if (null != finalTextureCur) {
+            drawFinal();
+            return;
+        }
 
         update(Gdx.graphics.getDeltaTime());
         drawAll();
@@ -476,6 +515,19 @@ public class TheGame extends ApplicationAdapter {
         }
     }
 
+    void startFinal(Texture img) {
+        finalTextureCur = img;
+        finalTime = 0;
+
+        Gdx.input.setInputProcessor(new InputAdapter() {
+            @Override
+            public boolean keyDown(int keycode) {
+                if (finalTime > 5) Gdx.app.exit();
+                return true;
+            }
+        });
+    }
+
     Collection<Runnable> actions = new ArrayList<Runnable>();
 
     private void update(float dt) {
@@ -513,6 +565,12 @@ public class TheGame extends ApplicationAdapter {
         actions.clear();
         updateFire(dt);
         spawnEnemyIfNecessary(dt);
+
+        gameplayTime += dt;
+
+        if (gameplayTime >= MAX_GAMEPLAY_TIME) {
+            startFinal(bgWinTexture);
+        }
     }
 
     @Override
