@@ -12,11 +12,9 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.github.oldnpluslusteam.old_38_game.model.Collidable;
 import com.github.oldnpluslusteam.old_38_game.model.CollidableAction;
+import com.github.oldnpluslusteam.old_38_game.model.Positionable;
 import com.github.oldnpluslusteam.old_38_game.model.Updatable;
-import com.github.oldnpluslusteam.old_38_game.model.impl.Bullet;
-import com.github.oldnpluslusteam.old_38_game.model.impl.DisposableAction;
-import com.github.oldnpluslusteam.old_38_game.model.impl.PlayerPlanet;
-import com.github.oldnpluslusteam.old_38_game.model.impl.SelftargetingBullet;
+import com.github.oldnpluslusteam.old_38_game.model.impl.*;
 
 import java.util.*;
 
@@ -46,6 +44,9 @@ public class TheGame extends ApplicationAdapter {
     PlayerPlanet playerPlanet;
     Texture playerImg;
 
+    List<EnemyPlanet> enemyPlanets;
+    List<Texture> enemyTextures;
+
     static final int BG_PADDING = 10;
     float[] bgInfo;
     Texture bgStarImg;
@@ -63,6 +64,8 @@ public class TheGame extends ApplicationAdapter {
         bullets = new ArrayList<Bullet>();
         collidables = new ArrayList<Collidable>();
         updatables = new ArrayList<Updatable>();
+        enemyPlanets = new LinkedList<EnemyPlanet>();
+        enemyTextures = new ArrayList<Texture>();
 
         Gdx.input.setInputProcessor(new InputAdapter() {
             @Override
@@ -120,6 +123,12 @@ public class TheGame extends ApplicationAdapter {
 
         playerPlanet = new PlayerPlanet(new Vector2(VP_WIDTH / 2, 64), 128);
         playerImg = new Texture(Gdx.files.internal("img/planet-1.png"), true);
+
+        enemyTextures.add(new Texture(Gdx.files.internal("img/planet-2.png")));
+        enemyTextures.add(new Texture(Gdx.files.internal("img/planet-3.png")));
+        enemyTextures.add(new Texture(Gdx.files.internal("img/planet-4.png")));
+
+        spawnEnemy();
     }
 
     void setupMainPPUniforms() {
@@ -148,6 +157,30 @@ public class TheGame extends ApplicationAdapter {
         particleEffect.getEmitters().get(0).getAngle().setHigh(a - 45, a + 45);
         particleEffect.start();
         bloodEffects.add(particleEffect);
+    }
+
+    void spawnEnemy() {
+        float size = MathUtils.random(64, 128);
+        float posX = MathUtils.random(BG_PADDING + size / 2, VP_WIDTH - BG_PADDING + size / 2);
+        float posY = VP_HEIGHT - size;
+
+        Texture texture = enemyTextures.get(MathUtils.random(enemyTextures.size() - 1));
+
+        EnemyPlanet planet = new EnemyPlanet(
+                size,
+                new CollidableAction() {
+                    @Override
+                    public void act() {
+
+                    }
+                },
+                new Vector2(),
+                new Vector2(posX, posY),
+                texture);
+
+        updatables.add(planet);
+        collidables.add(planet);
+        enemyPlanets.add(planet);
     }
 
     void drawBG() {
@@ -201,6 +234,14 @@ public class TheGame extends ApplicationAdapter {
     }
 
     void drawPlanets() {
+        for (EnemyPlanet planet : enemyPlanets) {
+            float size = planet.getSize();
+            Vector2 pos = planet.getPosition();
+
+            batch.draw(planet.getTexture(),
+                    pos.x - size / 2, pos.y - size / 2, size, size);
+        }
+
         batch.draw(playerImg,
                 playerPlanet.getPosition().x - playerPlanet.getSize() / 2,
                 playerPlanet.getPosition().y - playerPlanet.getSize() / 2,
@@ -310,18 +351,28 @@ public class TheGame extends ApplicationAdapter {
         }
 
         if (Gdx.input.isButtonPressed(Input.Buttons.RIGHT)) {
-            fireTime1 += dt;
-            if (fireTimeout1 <= 0) {
-                fireTimeout1 = 0.08f;
+            float ftd = dt;
+            float fct = 0.02f;
+
+            while (fireTimeout1 <= 0) {
+                fireTimeout1 += fct;
+                fireTime1 += fct;
+                ftd -= fct;
 
                 Vector2 v = screenViewport.unproject(
                         new Vector2(Gdx.input.getX(), Gdx.input.getY()));
                 v.sub(playerPlanet.getPosition()).nor();
                 float a = v.angle();
-                a += 90f * Math.sin(fireTime0 * Math.PI * 2);
+                a += 90f * Math.sin(fireTime1 * Math.PI * 2);
                 v.setAngle(a).scl(150);
+                Positionable target = null;
+
+                if (enemyPlanets.size() > 0) {
+                    target = enemyPlanets.get(MathUtils.random(enemyPlanets.size() - 1));
+                }
+
                 final SelftargetingBullet bullet = new SelftargetingBullet(
-                        playerPlanet.getPosition().cpy(), v, 5, bullets.get(bullets.size() - 1));
+                        playerPlanet.getPosition().cpy(), v, 5, target);
                 bullet.setDisposableAction(new DisposableAction() {
                     @Override
                     public void dispose() {
@@ -334,6 +385,8 @@ public class TheGame extends ApplicationAdapter {
                 collidables.add(bullet);
                 updatables.add(bullet);
             }
+
+            fireTime1 += ftd;
         }
     }
 

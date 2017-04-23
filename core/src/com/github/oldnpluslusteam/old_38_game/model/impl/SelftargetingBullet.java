@@ -15,10 +15,12 @@ public class SelftargetingBullet extends Bullet {
 
 	@Override
 	public void updateVelocity(float dt) {
+		if (null == target) return;
+		float k = Math.min(1f, dt * 0.25f);
 		float vMod = getVelocity().len();
 		tmp1.set(target.getPosition());
 		tmp1.sub(getPosition());
 		tmp1.nor().scl(vMod);
-		getVelocity().lerp(tmp1, dt * 0.125f);
+		getVelocity().lerp(tmp1, k);
 	}
 }
