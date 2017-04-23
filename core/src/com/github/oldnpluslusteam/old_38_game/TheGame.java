@@ -17,7 +17,6 @@ import com.github.oldnpluslusteam.old_38_game.model.Positionable;
 import com.github.oldnpluslusteam.old_38_game.model.Updatable;
 import com.github.oldnpluslusteam.old_38_game.model.impl.*;
 
-import java.lang.ref.Reference;
 import java.util.*;
 
 import static com.badlogic.gdx.graphics.GL20.*;
@@ -175,6 +174,8 @@ public class TheGame extends ApplicationAdapter {
         EnemyPlanet planet = new EnemyPlanet(
                 size,
                 new CollidableAction() {
+                    float hp = size;
+
                     @Override
                     public void act(Collidable other) {
                         tmp1.set(other.getPosition());
@@ -185,11 +186,35 @@ public class TheGame extends ApplicationAdapter {
                                 planetA[0].getPosition(),
                                 tmp1.cpy()
                         );
+
+                        hp -= other.getSize();
+
+                        if (hp <= 0) {
+                            addBlood(planetA[0].getPosition(), new Vector2(1,0));
+                            addBlood(planetA[0].getPosition(), new Vector2(-1,0));
+                            addBlood(planetA[0].getPosition(), new Vector2(0,1));
+                            addBlood(planetA[0].getPosition(), new Vector2(0,-1));
+                            addBlood(planetA[0].getPosition(), new Vector2(1,1));
+                            addBlood(planetA[0].getPosition(), new Vector2(-1,1));
+                            addBlood(planetA[0].getPosition(), new Vector2(-1,-1));
+                            addBlood(planetA[0].getPosition(), new Vector2(1,-1));
+
+                            planetA[0].dispose();
+                        }
                     }
                 },
                 new Vector2(),
                 new Vector2(posX, posY),
-                texture);
+                texture,
+                new DisposableAction() {
+                    @Override
+                    public void dispose() {
+                        updatables.remove(planetA[0]);
+                        collidables.remove(planetA[0]);
+                        enemyPlanets.remove(planetA[0]);
+                    }
+                }
+        );
 
         planetA[0] = planet;
 
@@ -380,9 +405,11 @@ public class TheGame extends ApplicationAdapter {
 
                 Vector2 v = screenViewport.unproject(
                         new Vector2(Gdx.input.getX(), Gdx.input.getY()));
-                v.sub(playerPlanet.getPosition()).nor();
+                v.sub(playerPlanet.getPosition());
+                float ak = (float) Math.pow(0.9f, 10f * v.len() / VP_HEIGHT);
+                v.nor();
                 float a = v.angle();
-                a += 90f * Math.sin(fireTime1 * Math.PI * 2);
+                a += (10f + 70f * ak) * Math.sin(fireTime1 * Math.PI * Math.E);
                 v.setAngle(a).scl(150);
                 Positionable target = null;
 
