@@ -152,6 +152,8 @@ public class TheGame extends ApplicationAdapter {
         enemyTextures.add(new Texture(Gdx.files.internal("img/planet-3.png")));
         enemyTextures.add(new Texture(Gdx.files.internal("img/planet-4.png")));
         enemyTextures.add(new Texture(Gdx.files.internal("img/planet-5.png")));
+        enemyTextures.add(new Texture(Gdx.files.internal("img/planet-6.png")));
+        enemyTextures.add(new Texture(Gdx.files.internal("img/planet-7.png")));
 
         bgWinTexture = new Texture(Gdx.files.internal("img/bg-win.jpg"));
         bgLoseTexture = new Texture(Gdx.files.internal("img/bg-lose.jpg"));
