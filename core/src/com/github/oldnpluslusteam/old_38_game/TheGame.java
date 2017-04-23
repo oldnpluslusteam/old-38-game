@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Disposable;
@@ -24,7 +25,7 @@ import static com.badlogic.gdx.graphics.glutils.HdpiUtils.glViewport;
 
 public class TheGame extends ApplicationAdapter {
     static final int VP_WIDTH = 1366, VP_HEIGHT = 768;
-    static final int MAX_ENEMIES = 10;
+    static final int MAX_ENEMIES = 12;
     static final float ENEMY_SPAWN_INTERVAL = 1f;
     static final float MAX_GAMEPLAY_TIME = 60;
 
@@ -71,6 +72,8 @@ public class TheGame extends ApplicationAdapter {
     float finalTime;
 
     float gameplayTime;
+
+    ShapeRenderer shapeRenderer;
 
     @Override
     public void create() {
@@ -159,6 +162,8 @@ public class TheGame extends ApplicationAdapter {
         spawnEnemy();
 
         gameplayTime = 0;
+
+        shapeRenderer = new ShapeRenderer();
     }
 
     void setupMainPPUniforms() {
@@ -225,7 +230,7 @@ public class TheGame extends ApplicationAdapter {
         EnemyPlanet planet = new EnemyPlanet(
                 size,
                 new CollidableAction() {
-                    float hp = size;
+                    float hp = size * 2;
 
                     @Override
                     public void act(Collidable other) {
@@ -352,6 +357,19 @@ public class TheGame extends ApplicationAdapter {
                 playerPlanet.getSize(), playerPlanet.getSize());
     }
 
+    void drawProgress() {
+        Gdx.gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        Gdx.gl.glEnable(GL_BLEND);
+        shapeRenderer.setColor(1f, .6f, .6f, .8f);
+        float a = (float) Math.ceil(180f * (gameplayTime / (float) MAX_GAMEPLAY_TIME));
+        shapeRenderer.arc(
+                playerPlanet.getPosition().x, playerPlanet.getPosition().y,
+                playerPlanet.getSize() * 1f,
+                (270f - a),
+                2f * a
+        );
+    }
+
     void drawAll() {
         camera.update();
         batch.setProjectionMatrix(camera.projection);
@@ -389,6 +407,13 @@ public class TheGame extends ApplicationAdapter {
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
             batch.begin();
             drawBG();
+
+            batch.end();
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            drawProgress();
+            shapeRenderer.end();
+            batch.begin();
+
             batch.setBlendFunction(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
             batch.draw(frameBuffer_00.getColorBufferTexture(), 0, VP_HEIGHT, VP_WIDTH, -VP_HEIGHT);
             batch.setBlendFunction(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
